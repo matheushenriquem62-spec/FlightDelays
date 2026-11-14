@@ -32,6 +32,10 @@ COLUNAS_NUMERICAS = ["mes", "dia_semana", "horario_previsto", "distancia", "atra
 # companhias com menos voos que isso ficam de fora da comparação (taxa instável)
 MIN_VOOS_COMPANHIA = 30
 
+# horas com menos voos que isso ficam de fora do gráfico por hora
+# (com poucos voos, 1 atraso a mais ou a menos muda muito a taxa e vira ruído)
+MIN_VOOS_HORA = 100
+
 NOMES_DIAS = {
     1: "segunda",
     2: "terça",
@@ -153,16 +157,21 @@ def analisar(df):
     pior_dia, melhor_dia = por_dia.idxmax(), por_dia.idxmin()
 
     # achado 3: atraso por faixa do dia
-    por_faixa = df.groupby(_faixa_horario(df), observed=True)["atrasou"].mean()
+    faixas = _faixa_horario(df)
+    por_faixa = df.groupby(faixas, observed=True)["atrasou"].mean()
+    voos_faixa = df.groupby(faixas, observed=True).size()
     pior_faixa, melhor_faixa = por_faixa.idxmax(), por_faixa.idxmin()
 
     achados = [
-        f"Companhias: {pior_cia} tem a maior taxa de atraso ({por_cia_ok.loc[pior_cia, 'mean'] * 100:.1f}%) "
-        f"e {melhor_cia} a menor ({por_cia_ok.loc[melhor_cia, 'mean'] * 100:.1f}%). A média geral é {taxa_geral}%.",
+        f"Companhias: {pior_cia} tem a maior taxa de atraso ({por_cia_ok.loc[pior_cia, 'mean'] * 100:.1f}%, "
+        f"{int(por_cia_ok.loc[pior_cia, 'count'])} voos) e {melhor_cia} a menor "
+        f"({por_cia_ok.loc[melhor_cia, 'mean'] * 100:.1f}%, {int(por_cia_ok.loc[melhor_cia, 'count'])} voos). "
+        f"A média geral é {taxa_geral}%.",
         f"Dia da semana: {NOMES_DIAS[pior_dia]} é o dia com mais atrasos ({por_dia[pior_dia] * 100:.1f}%) "
         f"e {NOMES_DIAS[melhor_dia]} o com menos ({por_dia[melhor_dia] * 100:.1f}%).",
-        f"Horário: a faixa '{pior_faixa}' tem a maior taxa de atraso ({por_faixa[pior_faixa] * 100:.1f}%) "
-        f"e '{melhor_faixa}' a menor ({por_faixa[melhor_faixa] * 100:.1f}%).",
+        f"Horário: a faixa '{pior_faixa}' tem a maior taxa de atraso ({por_faixa[pior_faixa] * 100:.1f}%, "
+        f"{int(voos_faixa[pior_faixa])} voos) e '{melhor_faixa}' a menor "
+        f"({por_faixa[melhor_faixa] * 100:.1f}%, {int(voos_faixa[melhor_faixa])} voos).",
     ]
 
     return {
@@ -210,12 +219,14 @@ def gerar_graficos(df, pasta):
     arquivos.append("grafico_companhias.png")
 
     # 3) RELAÇÃO: taxa de atraso conforme a hora prevista de saída
-    por_hora = (df.groupby(df["horario_previsto"] // 100)["atrasou"].mean() * 100)
+    por_hora = df.groupby(df["horario_previsto"] // 100)["atrasou"].agg(["mean", "count"])
+    por_hora = por_hora[por_hora["count"] >= MIN_VOOS_HORA]   # tira horas com poucos voos
+    taxa_hora = por_hora["mean"] * 100
     fig, ax = plt.subplots(figsize=(8, 4.5))
-    ax.plot(por_hora.index, por_hora.values, marker="o", color="#2a7f8f")
+    ax.plot(taxa_hora.index, taxa_hora.values, marker="o", color="#2a7f8f")
     ax.axhline(taxa_geral, color="#c0392b", linestyle="--", label=f"Média geral ({taxa_geral:.1f}%)")
     ax.set_title("Taxa de atraso por hora prevista de saída")
-    ax.set_xlabel("Hora prevista de saída (0 a 23)")
+    ax.set_xlabel(f"Hora prevista de saída (horas com menos de {MIN_VOOS_HORA} voos não aparecem)")
     ax.set_ylabel("Voos atrasados (%)")
     ax.set_xticks(range(0, 24, 2))
     ax.legend()
