@@ -1,4 +1,6 @@
 """dados.py - leitura, validação, limpeza, análise e gráficos do CSV de voos.
+Parte do Mariano (dados). O app.py chama as funções na ordem:
+    ler_csv -> limpar -> analisar -> gerar_graficos
 
 Formato esperado do CSV (uma linha por voo):
     mes               número de 1 a 12
@@ -9,8 +11,10 @@ Formato esperado do CSV (uma linha por voo):
     atrasou           1 se chegou com 15 min ou mais de atraso, 0 caso contrário
 """
 
+# os: criar a pasta dos gráficos e montar caminhos de arquivo
 import os
 
+# pandas: lê o CSV e faz as contas com tabelas (DataFrame)
 import pandas as pd
 import matplotlib
 
@@ -19,6 +23,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
+# colunas que o CSV enviado precisa ter (o "formato esperado" do trabalho)
 COLUNAS_OBRIGATORIAS = [
     "mes",
     "dia_semana",
@@ -27,6 +32,7 @@ COLUNAS_OBRIGATORIAS = [
     "distancia",
     "atrasou",
 ]
+# colunas que precisam ser número (todas, menos a companhia)
 COLUNAS_NUMERICAS = ["mes", "dia_semana", "horario_previsto", "distancia", "atrasou"]
 
 # companhias com menos voos que isso ficam de fora da comparação (taxa instável)
@@ -36,6 +42,7 @@ MIN_VOOS_COMPANHIA = 30
 # (com poucos voos, 1 atraso a mais ou a menos muda muito a taxa e vira ruído)
 MIN_VOOS_HORA = 100
 
+# traduz o número do dia da semana para o nome (usado nos textos dos achados)
 NOMES_DIAS = {
     1: "segunda",
     2: "terça",
@@ -47,9 +54,15 @@ NOMES_DIAS = {
 }
 
 
+# ============================================================
+# 1) LER E VALIDAR O ARQUIVO
+#    Recebe o arquivo enviado. Devolve um DataFrame, ou levanta
+#    ValueError com mensagem clara (a rota /upload mostra ao usuário).
+# ============================================================
 def ler_csv(arquivo):
     """Lê o CSV enviado e confere se ele serve. Devolve um DataFrame.
     Se algo estiver errado, levanta ValueError com uma mensagem clara."""
+    # tenta ler; cada tipo de problema vira uma mensagem diferente
     try:
         df = pd.read_csv(arquivo)
     except pd.errors.EmptyDataError:
@@ -57,6 +70,7 @@ def ler_csv(arquivo):
     except Exception:
         raise ValueError("Não foi possível ler o arquivo. Envie um CSV válido.")
 
+    # tem cabeçalho mas nenhuma linha de dados
     if df.empty:
         raise ValueError("O arquivo tem o cabeçalho, mas nenhuma linha de dados.")
 
@@ -64,6 +78,7 @@ def ler_csv(arquivo):
     if len(df.columns) == 1 and (";" in df.columns[0] or "\t" in df.columns[0]):
         raise ValueError("Separador incorreto. O CSV deve usar vírgula (,) para separar as colunas.")
 
+    # confere se todas as colunas obrigatórias existem e diz quais faltam
     faltando = [c for c in COLUNAS_OBRIGATORIAS if c not in df.columns]
     if faltando:
         raise ValueError(
@@ -74,10 +89,17 @@ def ler_csv(arquivo):
     return df
 
 
+# ============================================================
+# 2) LIMPAR OS DADOS
+#    Recebe o DataFrame lido. Devolve (df_limpo, relatorio).
+#    O relatório guarda o que foi feito, para aparecer na página.
+# ============================================================
 def limpar(df):
     """Limpa os dados SEM alterar o DataFrame recebido (trabalha numa cópia).
     Devolve (df_limpo, relatorio). O relatório registra cada transformação."""
+    # trabalha numa CÓPIA, só com as colunas do projeto (o original não muda)
     df = df[COLUNAS_OBRIGATORIAS].copy()
+    # guarda o tamanho antes da limpeza, para comparar depois
     linhas_antes = len(df)
     transformacoes = []
 
@@ -114,11 +136,13 @@ def limpar(df):
     for coluna in ["mes", "dia_semana", "horario_previsto", "atrasou"]:
         df[coluna] = df[coluna].astype(int)
 
+    # renumera as linhas de 0 em diante (as removidas deixariam buracos)
     df = df.reset_index(drop=True)
 
     if df.empty:
         raise ValueError("Depois da limpeza não sobrou nenhum registro válido.")
 
+    # resumo da limpeza: a página mostra antes, depois e o que foi feito
     relatorio = {
         "linhas_antes": linhas_antes,
         "linhas_depois": len(df),
@@ -130,8 +154,10 @@ def limpar(df):
     return df, relatorio
 
 
+# auxiliar (o "_" avisa que é de uso interno): agrupa a hora em faixas do dia
 def _faixa_horario(df):
     """Transforma o horário HHMM em faixa do dia (série de texto)."""
+    # 1435 -> 14 (o // é divisão inteira: pega só a hora)
     hora = df["horario_previsto"] // 100
     return pd.cut(
         hora,
@@ -140,8 +166,15 @@ def _faixa_horario(df):
     )
 
 
+# ============================================================
+# 3) ANÁLISE: os 3 achados do trabalho
+#    Recebe o DataFrame limpo. Devolve um dicionário com os
+#    totais e as 3 frases dos achados.
+#    Como "atrasou" é 0 ou 1, a média dela é a taxa de atraso.
+# ============================================================
 def analisar(df):
     """Calcula os 3 achados do trabalho. Devolve um dicionário."""
+    # taxa de atraso de todos os voos, em %
     taxa_geral = round(df["atrasou"].mean() * 100, 1)
 
     # achado 1: atraso por companhia (só companhias com voos suficientes)
@@ -162,6 +195,7 @@ def analisar(df):
     voos_faixa = df.groupby(faixas, observed=True).size()
     pior_faixa, melhor_faixa = por_faixa.idxmax(), por_faixa.idxmin()
 
+    # monta as 3 frases (o f"..." coloca o valor das variáveis no texto)
     achados = [
         f"Companhias: {pior_cia} tem a maior taxa de atraso ({por_cia_ok.loc[pior_cia, 'mean'] * 100:.1f}%, "
         f"{int(por_cia_ok.loc[pior_cia, 'count'])} voos) e {melhor_cia} a menor "
@@ -174,6 +208,7 @@ def analisar(df):
         f"({por_faixa[melhor_faixa] * 100:.1f}%, {int(voos_faixa[melhor_faixa])} voos).",
     ]
 
+    # o que a rota /upload entrega para a página analise.html
     return {
         "total_voos": len(df),
         "taxa_geral": taxa_geral,
@@ -183,13 +218,19 @@ def analisar(df):
     }
 
 
+# ============================================================
+# 4) GRÁFICOS: salva 3 PNGs na pasta (static)
+#    Recebe o DataFrame limpo e a pasta. Devolve os nomes dos arquivos.
+# ============================================================
 def gerar_graficos(df, pasta):
     """Gera os 3 gráficos como PNG dentro de 'pasta'. Devolve a lista de nomes dos arquivos."""
+    # cria a pasta se ainda não existir
     os.makedirs(pasta, exist_ok=True)
     taxa_geral = df["atrasou"].mean() * 100
     arquivos = []
 
     # 1) DISTRIBUIÇÃO: histograma da distância
+    # fig = a folha, ax = a área do gráfico
     fig, ax = plt.subplots(figsize=(8, 4.5))
     ax.hist(df["distancia"], bins=30, color="#2a7f8f", edgecolor="white")
     ax.set_title("Distribuição da distância dos voos")
@@ -197,7 +238,7 @@ def gerar_graficos(df, pasta):
     ax.set_ylabel("Quantidade de voos")
     fig.tight_layout()
     fig.savefig(os.path.join(pasta, "grafico_distancia.png"), dpi=110)
-    plt.close(fig)
+    plt.close(fig)  # libera a memória (senão acumula figuras a cada upload)
     arquivos.append("grafico_distancia.png")
 
     # 2) COMPARAÇÃO: taxa de atraso por companhia
@@ -208,6 +249,7 @@ def gerar_graficos(df, pasta):
     por_cia_ok = (por_cia_ok["mean"] * 100).sort_values()
     fig, ax = plt.subplots(figsize=(8, max(4.5, 0.35 * len(por_cia_ok))))
     ax.barh(por_cia_ok.index, por_cia_ok.values, color="#2a7f8f")
+    # linha tracejada com a média geral, para comparar as companhias
     ax.axvline(taxa_geral, color="#c0392b", linestyle="--", label=f"Média geral ({taxa_geral:.1f}%)")
     ax.set_title("Taxa de atraso na chegada por companhia")
     ax.set_xlabel("Voos atrasados (%)")
@@ -219,6 +261,7 @@ def gerar_graficos(df, pasta):
     arquivos.append("grafico_companhias.png")
 
     # 3) RELAÇÃO: taxa de atraso conforme a hora prevista de saída
+    # taxa de atraso por hora do dia (hora = horário // 100)
     por_hora = df.groupby(df["horario_previsto"] // 100)["atrasou"].agg(["mean", "count"])
     por_hora = por_hora[por_hora["count"] >= MIN_VOOS_HORA]   # tira horas com poucos voos
     taxa_hora = por_hora["mean"] * 100
@@ -238,6 +281,7 @@ def gerar_graficos(df, pasta):
     return arquivos
 
 
+# só roda com "python dados.py" (o Flask não executa este bloco)
 if __name__ == "__main__":
     # teste rápido fora do Flask:  python dados.py
     df_lido = ler_csv("data/voos.csv")

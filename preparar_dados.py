@@ -12,11 +12,15 @@ Se o arquivo tiver a coluna ARR_DEL15, ela é usada. Se não tiver, o alvo é ca
 a partir do atraso de chegada em minutos (ARR_DELAY ou ARR_DELAY_NEW): >= 15 vira 1.
 """
 
+# sys: pega o que foi digitado no terminal (o caminho do CSV)
 import sys
 
+# pandas: lê e transforma o CSV
 import pandas as pd
 
+# arquivo de entrada: o 1º argumento do terminal (ou o padrão)
 ENTRADA = sys.argv[1] if len(sys.argv) > 1 else "data/bts_bruto.csv"
+# arquivo pronto que o projeto usa
 SAIDA = "data/voos.csv"
 TAMANHO_AMOSTRA = 30000
 SEMENTE = 42  # random_state: garante que todo mundo gera a mesma amostra
@@ -37,6 +41,7 @@ COLUNA_ATRASOU = ["ArrDel15"]  # já vem 0/1
 COLUNA_ATRASO_MIN = ["ArrDelay", "ArrDelayNew", "ArrDelayMinutes"]  # atraso em minutos
 
 
+# compara nomes de coluna ignorando maiúsculas e "_" (DAY_OF_WEEK = DayOfWeek)
 def normalizar(nome):
     return nome.replace("_", "").lower()
 
@@ -62,10 +67,12 @@ def exigir(colunas_arquivo, candidatos, nome):
     return coluna
 
 
+# passo a passo: ler -> filtrar -> criar o alvo -> amostrar -> salvar
 def main():
     bruto = pd.read_csv(ENTRADA, low_memory=False)
     print(f"Arquivo bruto: {len(bruto)} voos, {len(bruto.columns)} colunas")
 
+    # descobre o nome real de cada coluna no arquivo baixado
     mapa = {nome: exigir(bruto.columns, cands, nome) for nome, cands in CANDIDATOS.items()}
     col_cancelado = exigir(bruto.columns, COLUNA_CANCELADO, "Cancelled")
 
@@ -91,6 +98,7 @@ def main():
     df = df.dropna(subset=[col_alvo])
     print(f"Com informação de atraso: {len(df)} voos")
 
+    # (o alvo "atrasou" é criado logo abaixo: 1 = chegou com 15 min ou mais de atraso)
     # 3) só as colunas do projeto, com os nomes do projeto
     saida = df[[mapa[n] for n in CANDIDATOS]].copy()
     saida.columns = list(CANDIDATOS)
@@ -108,9 +116,11 @@ def main():
         saida = saida.sample(TAMANHO_AMOSTRA, random_state=SEMENTE)
     saida = saida.reset_index(drop=True)
 
+    # index=False: não grava a coluna de números de linha do pandas
     saida.to_csv(SAIDA, index=False)
     print(f"Salvo em {SAIDA}: {len(saida)} voos | {saida['atrasou'].mean() * 100:.1f}% atrasaram {LIMITE_ATRASO_MIN} min ou mais")
 
 
+# só roda com "python preparar_dados.py ..." (não quando é importado)
 if __name__ == "__main__":
     main()
