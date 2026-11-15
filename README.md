@@ -18,3 +18,25 @@ Recebe o CSV pelo formulário, chama as funções acima e manda o resultado para
 **Limitação:** os dados são só de janeiro, então os padrões podem refletir o inverno nos EUA.
 
 **Uso de IA:** usei o Claude (Anthropic) para tirar dúvidas, entender conceitos, revisar e comentar o código da minha parte.
+
+
+
+## Parte do Pedro: páginas de upload e de resultados
+
+Eu fiquei com a página de upload e a página de resultados. Os arquivos são `templates/index.html` e `templates/analise.html`, e 2 linhas na rota `/upload` do `app.py`.
+
+**index.html**
+Página inicial. Tem o formulário que envia o CSV para a rota `/upload` (método POST, com `enctype="multipart/form-data"`, que é obrigatório para enviar arquivo). O campo se chama `arquivo`, o mesmo nome que o `app.py` usa em `request.files.get("arquivo")`. A página também mostra o formato esperado do CSV (as 6 colunas).
+
+**analise.html**
+Página de resultados, montada com Jinja a partir das variáveis que a rota `/upload` envia:
+- `erro`: se o arquivo for inválido, mostra a mensagem e um link para voltar.
+- `colunas` e `amostra`: nomes das colunas e as 10 primeiras linhas do arquivo enviado.
+- `relatorio`: tamanho da base antes e depois da limpeza e o que foi feito (função `limpar`).
+- `resultado`: total de voos, taxa geral de atraso e os 3 achados (função `analisar`).
+- `graficos`: os 3 gráficos (função `gerar_graficos`), cada um com um texto de interpretação.
+
+**app.py (rota /upload)**
+Adicionei `amostra` e `colunas` no `render_template`, para mostrar a amostra e as colunas do arquivo enviado.
+
+**Uso de IA:** usei o Claude (Anthropic) para tirar dúvidas, entender conceitos e revisar o código da minha parte.
