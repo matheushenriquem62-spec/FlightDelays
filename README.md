@@ -58,3 +58,35 @@ Um CSS só para as 3 páginas. Eu estilizei as tags direto (body, table, form, i
 
 **Limitação:** o modelo foi treinado só com voos de janeiro, então escolher outro mês no formulário não muda o resultado de verdade. Deixei um aviso na página sobre isso.
 
+
+
+## Parte do Matheus Henrique: modelos, avaliação e função de previsão
+
+Eu fiquei com a parte do machine learning. Os arquivos são `modelo.py`, `treinar.py` e o modelo salvo em `models/modelo.joblib`.
+
+**modelo.py**
+- `preparar_xy`: separa a tabela em X (mês, dia da semana, companhia, horário previsto e distância) e y (`atrasou`). Só entram no X informações que existem antes do voo, para não haver vazamento de dados. A companhia é texto, então uso o one-hot encoding (`pd.get_dummies`), que cria uma coluna de 0 e 1 para cada companhia. O X fica com 17 colunas.
+- `separar_treino_teste`: usa o `train_test_split` do scikit-learn para guardar 80% dos voos para treino (24 mil) e 20% para teste (6 mil). Uso `random_state=42` para a divisão ser sempre a mesma e `stratify=y` para manter a proporção de voos atrasados (cerca de 20%) nos dois grupos. Os dois modelos usam a mesma divisão, então a comparação é justa.
+- `treinar_modelos`: cria e treina com o `fit` dois modelos, a Decision Tree (árvore de decisão, `max_depth=5`) e a Random Forest (100 árvores que votam, `max_depth=10`). Os dois estudam só os dados de treino.
+- `avaliar_modelos`: cada modelo dá o palpite (`predict`) nos voos de teste, que ele nunca viu, e comparo com o `y_test`. Guardo a acurácia, a matriz de confusão, o relatório (precisão, recall e f1) e o `f1_atraso`, a nota só dos voos atrasados.
+- `salvar_melhor_modelo`: escolhe o modelo com maior `f1_atraso` e salva com o `joblib` em `models/modelo.joblib`, junto com a lista de colunas. Assim o site só carrega o modelo pronto, sem treinar de novo.
+- `prever`: recebe os dados de um voo, monta a tabela com as mesmas 17 colunas do treino e devolve se o voo provavelmente atrasa, a chance em % e o nome do modelo. É a função que o formulário do site chama.
+
+**treinar.py**
+Script que junta tudo na ordem: lê `data/voos.csv`, separa X e y, divide em treino e teste, treina, avalia, mostra os resultados e salva o melhor modelo.
+Como usar: `python treinar.py`
+
+**Resultados (6 mil voos de teste)**
+
+| Modelo | Acurácia | Atrasos encontrados (recall) | Precisão do "atrasa" | f1 do "atrasa" |
+|---|---|---|---|---|
+| Decision Tree | 0,62 | 0,49 | 0,26 | 0,34 |
+| Random Forest | 0,618 | 0,54 | 0,28 | 0,37 |
+
+A Random Forest foi salva por ter o maior f1 de atraso.
+
+**O que aprendi sobre a acurácia:** na primeira versão a acurácia deu 0,795, mas isso enganava. Só cerca de 20% dos voos atrasam, então um modelo que sempre responde "não atrasa" também acerta uns 80%. A matriz de confusão mostrou que os modelos não achavam nenhum voo atrasado (recall 0,00). Por isso usei `class_weight="balanced"`, que dá mais peso aos voos atrasados. A acurácia caiu para 0,62, mas os modelos passaram a identificar mais da metade dos atrasos, com mais alarmes falsos. Escolhi essa troca porque o objetivo do sistema é avisar sobre atrasos.
+
+**Limitação:** mês, dia, companhia, horário e distância explicam pouco do atraso, então os modelos erram bastante (quando dizem "atrasa", acertam menos de 3 em cada 10 vezes). O modelo foi treinado só com voos de janeiro e deve ser lido como uma estimativa, não como uma garantia.
+
+**Uso de IA:** usei o Claude (Anthropic) para tirar dúvidas, entender os conceitos (treino e teste, one-hot, métricas), revisar e comentar o código da minha parte. Eu rodei e testei o código e consigo explicar cada parte.
