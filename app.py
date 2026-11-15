@@ -56,6 +56,9 @@ def upload():
         relatorio=relatorio,
         resultado=resultado,
         graficos=graficos,
+      # amostra e colunas do arquivo enviado (slide 5); to_html transforma a tabela em HTML
+      amostra=df.head(10).to_html(index=False),
+      colunas=list(df.columns),
     )
 
 

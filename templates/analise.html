@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<!--
+analise.html - página de resultados.
+Parte do Pedro. Recebe do app.py (rota /upload) as variáveis:
+    erro       mensagem de erro, ou None se deu certo
+    colunas    nomes das colunas do CSV enviado
+    amostra    as 10 primeiras linhas (tabela HTML)
+    relatorio  resultado da limpar() do dados.py
+    resultado  resultado da analisar() do dados.py
+    graficos   nomes dos PNGs da gerar_graficos() do dados.py
+-->
+<html lang="pt-br">
+<head> 
+    <meta charset="utf-8">
+    <title>Analise dos voos</title> 
+</head> 
+<body> 
+    <h1>Analise dos voos</h1>
+
+<!-- // "erro" vem do app.py: tem a mensagem se o arquivo for inválido, ou None se deu certo -->
+    {% if erro %}
+        <p><strong>Erro:</strong>{{ erro }}</p>
+        <a href="/">Voltar e enviar outro arquivo</a>
+    {% else %}
+
+    <!-- // "colunas" e "amostra" vêm do app.py (as 10 primeiras linhas do arquivo enviado) -->
+     <h2>Arquivo enviado</h2>
+     <p>Colunas: {{ colunas | join(", ") }}</p>
+     <p>Amostra (10 primeiras linhas):</p>
+     {{ amostra | safe}}
+
+
+<!-- // "relatorio" vem da função limpar() do dados.py -->
+ <h2>Limpeza dos dados</h2>
+ <p>Registros antes: {{relatorio.linhas_antes}}</p>
+ <p>Registros depois: {{relatorio.linhas_depois}}</p>
+ <ul>
+    {% for t in relatorio.transformacoes %}
+        <li>{{ t }}</li>
+    {% endfor %}
+    </ul>
+
+    <!-- // "resultado" vem da função analisar() do dados.py -->
+     <h2>Resumo</h2> 
+     <p>Total de voos: {{resultado.total_voos}}</p>
+     <p>Taxa geral de atraso: {{resultado.taxa_geral}}%</p>
+     <p>Distancia média: {{resultado.distancia_media}} milhas</p>
+
+     <h2>Achados</h2>
+     <ol>
+        {% for achado in resultado.achados %}
+            <li>{{ achado }}</li>
+        {% endfor %}
+     </ol>
+
+     <!-- // "graficos" vem da função gerar_graficos() do dados.py (nomes dos PNGs na pasta static) -->
+    <h2>Graficos</h2>
+    <h3>1. Distribuicao da distancia</h3>
+    <img src="{{ url_for('static', filename=graficos[0]) }}" alt="Histograma da distancia" width="700">
+    <p>A maioria dos voos é curta ou média, entre 200 e 1000 milhas. Poucos voos passam de 2500 milhas: esses são os valores extremos, voos longos de costa a costa.</p>
+
+    <h3>2. Taxa de atraso por companhia</h3>
+    <img src="{{ url_for('static', filename=graficos[1]) }}" alt="Atraso por companhia" width="700">
+    <p>A linha vermelha é a média geral. Barras à direita dela são companhias que atrasam mais que a média. A diferença entre a pior e a melhor mostra que a companhia ajuda a prever o atraso.</p>
+
+    <h3>3. Taxa de atraso por hora de saida</h3>
+    <img src="{{ url_for('static', filename=graficos[2]) }}" alt="Atraso por hora" width="700">
+    <p>Os voos da manhã atrasam menos, e a taxa sobe ao longo do dia, porque um atraso em um voo passa para os próximos voos do mesmo avião (efeito cascata). Horas com poucos voos ficam de fora para não distorcer a taxa.</p>
+
+        <p><a href="/">Enviar outro arquivo</a></p>
+{% endif %}
+</body>
+</html>

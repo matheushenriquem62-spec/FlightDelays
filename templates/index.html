@@ -1,10 +1,35 @@
 <!doctype html>
+<!--
+index.html - página inicial (upload do CSV).
+Parte do Pedro. O formulário envia o arquivo para a rota /upload do app.py,
+que chama o dados.py e devolve a analise.html.
+-->
 <html lang="pt-br">
 <head>
     <meta charset="utf-8">
     <title>Atrasos de Voos</title>
 </head>
 <body>
-    <h1>Teste funcionando?</h1>
+    <h1>Previsão de Atraso de Voos</h1>
+    <p>Envie um arquivo CSV com os voos para ver a análise.</p>
+
+    <!-- // envia o CSV para a rota /upload do app.py (multipart é obrigatório para arquivo) -->
+    <form action="/upload" method="POST" enctype="multipart/form-data">
+        <!-- // "arquivo" é o nome que o app.py usa em request.files.get("arquivo") -->
+        <input type="file" name="arquivo" accept=".csv" required>
+        <button type="submit">Analisar</button>
+    </form>
+
+    <!-- colunas aceitas (as mesmas do COLUNAS_OBRIGATORIAS do dados.py) -->
+    <h2>Formato esperado do CSV</h2>
+    <p>Separado por vírgula, com estas colunas:</p>
+    <ul>
+        <li><strong>mes</strong>: número de 1 a 12</li>
+        <li><strong>dia_semana</strong>: 1 (segunda) a 7 (domingo)</li>
+        <li><strong>companhia</strong>: código da companhia (ex.: AA, DL)</li>
+        <li><strong>horario_previsto</strong>: HHMM (ex.: 1435 = 14:35)</li>
+        <li><strong>distancia</strong>: em milhas, maior que 0</li>
+        <li><strong>atrasou</strong>: 1 se atrasou 15 min ou mais, senão 0</li>
+    </ul>
 </body>
 </html>
