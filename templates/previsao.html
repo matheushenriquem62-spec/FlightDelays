@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<!--
+previsao.html - página da previsão.
+Parte do Matheus (front-end). Recebe do app.py (rota /previsao) as variáveis:
+    companhias  lista de siglas que o modelo conhece (para o campo de companhia)
+    valores     o que a pessoa digitou (para não apagar o formulário quando der erro)
+    erro        mensagem de erro, ou None se está tudo certo
+    resultado   resposta da função prever() do modelo.py, ou None antes de enviar
+                (tem as chaves: atrasa, chance, modelo)
+-->
+<html lang="pt-br">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Previsão de atraso</title>
+    <!-- o CSS é um arquivo só (static/style.css) usado pelas 3 páginas -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <h1>Previsão de Atraso de Voos</h1>
+
+    <!-- links entre as páginas -->
+    <nav>
+        <a href="/">Enviar CSV</a>
+        <a href="/previsao" class="ativo">Fazer previsão</a>
+    </nav>
+
+    <p>Preencha os dados do voo para ver se ele deve chegar com 15 minutos ou mais de atraso.</p>
+
+    <!-- se algo deu errado, a mensagem aparece aqui -->
+    {% if erro %}
+        <p class="erro"><strong>Atenção:</strong> {{ erro }}</p>
+    {% endif %}
+
+    <!-- manda os dados para a mesma rota (/previsao), só que por POST -->
+    <form action="/previsao" method="POST">
+
+        <!-- companhia: as opções vêm do próprio modelo, assim sempre batem com o treino -->
+        <label for="companhia">Companhia aérea</label>
+        <select name="companhia" id="companhia" required>
+            <option value="">Escolha...</option>
+            {% for c in companhias %}
+                <option value="{{ c }}" {% if valores.get("companhia") == c %}selected{% endif %}>{{ c }}</option>
+            {% endfor %}
+        </select>
+
+        <!-- mês: o value é o número (1 a 12), que é o que o modelo usa -->
+        <label for="mes">Mês</label>
+        <select name="mes" id="mes" required>
+            <option value="">Escolha...</option>
+            {% for nome in ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"] %}
+                <option value="{{ loop.index }}" {% if valores.get("mes") == loop.index | string %}selected{% endif %}>{{ nome }}</option>
+            {% endfor %}
+        </select>
+        <small>Atenção: o modelo foi treinado só com voos de janeiro.</small>
+
+        <!-- dia da semana: 1 = segunda ... 7 = domingo (igual ao CSV) -->
+        <label for="dia_semana">Dia da semana</label>
+        <select name="dia_semana" id="dia_semana" required>
+            <option value="">Escolha...</option>
+            {% for nome in ["Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado", "Domingo"] %}
+                <option value="{{ loop.index }}" {% if valores.get("dia_semana") == loop.index | string %}selected{% endif %}>{{ nome }}</option>
+            {% endfor %}
+        </select>
+
+        <!-- horário: o navegador manda "14:35", e o app.py transforma em 1435 -->
+        <label for="horario">Horário previsto de saída</label>
+        <input type="time" name="horario" id="horario" value="{{ valores.get('horario', '') }}" required>
+
+        <!-- distância em milhas (o CSV usa milhas, não km) -->
+        <label for="distancia">Distância do voo (em milhas)</label>
+        <input type="number" name="distancia" id="distancia" min="1" max="5000" step="1"
+               placeholder="Ex.: 800" value="{{ valores.get('distancia', '') }}" required>
+        <small>Entre 1 e 5000 milhas. Para ter uma ideia: 800 milhas é mais ou menos 1300 km.</small>
+
+        <button type="submit">Prever atraso</button>
+    </form>
+
+    <!-- o resultado só aparece depois que o formulário foi enviado com dados válidos -->
+    {% if resultado %}
+        <!-- a classe muda a cor da caixa: "atrasa" fica vermelha, "no-horario" fica verde -->
+        <div class="resultado {{ 'atrasa' if resultado.atrasa else 'no-horario' }}">
+            {% if resultado.atrasa %}
+                <h2>Provável atraso</h2>
+                <p>O modelo acha que esse voo vai chegar com <strong>15 minutos ou mais</strong> de atraso.</p>
+            {% else %}
+                <h2>Provavelmente no horário</h2>
+                <p>O modelo acha que esse voo <strong>não</strong> vai chegar com 15 minutos ou mais de atraso.</p>
+            {% endif %}
+
+            <p>Chance de atraso: <strong>{{ resultado.chance }}%</strong></p>
+            <p><small>Modelo usado: {{ resultado.modelo }} (treinado com voos de janeiro). É só uma estimativa, não uma garantia.</small></p>
+        </div>
+    {% endif %}
+</body>
+</html>

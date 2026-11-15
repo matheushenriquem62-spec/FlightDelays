@@ -40,3 +40,22 @@ Página de resultados, montada com Jinja a partir das variáveis que a rota `/up
 Adicionei `amostra` e `colunas` no `render_template`, para mostrar a amostra e as colunas do arquivo enviado.
 
 **Uso de IA:** usei o Claude (Anthropic) para tirar dúvidas, entender conceitos e revisar o código da minha parte.
+
+
+## Parte do Matheus: formulário de previsão e CSS do site
+
+Eu fiquei com o formulário de previsão, a exibição do resultado e o visual do site. Os arquivos são `templates/previsao.html`, `static/style.css` e a rota `/previsao` do `app.py`. Também coloquei o `<link>` do CSS no `index.html` e no `analise.html`, e um menu para navegar entre as páginas.
+
+**previsao.html**
+Tem um campo para cada variável do X: companhia, mês, dia da semana, horário previsto e distância. As companhias da lista vêm do próprio modelo salvo, então sempre batem com o que ele aprendeu. O horário é digitado como 14:35 e o `app.py` transforma em 1435 (o formato do CSV). Se der erro, a mensagem aparece em cima e o que a pessoa digitou não é apagado. O resultado aparece numa caixa vermelha (provável atraso) ou verde (provavelmente no horário), com a chance em % e o nome do modelo usado.
+
+**app.py (rota /previsao)**
+- `pegar_companhias`: abre o modelo salvo e pega as siglas das companhias que ele conhece.
+- `previsao`: no GET mostra o formulário. No POST converte os campos, confere se os valores fazem sentido (mês de 1 a 12, dia de 1 a 7, distância de 1 a 5000 milhas, companhia da lista) e chama a função `prever` do `modelo.py`. Se algo estiver errado, mostra uma mensagem em vez de quebrar. Se o modelo ainda não foi treinado, avisa para rodar `python treinar.py`.
+
+**style.css**
+Um CSS só para as 3 páginas. Eu estilizei as tags direto (body, table, form, img...), então as páginas do Pedro ficaram com o visual novo só com a linha do `<link>`. As cores ficam todas no começo do arquivo. Funciona no celular também.
+
+**Limitação:** o modelo foi treinado só com voos de janeiro, então escolher outro mês no formulário não muda o resultado de verdade. Deixei um aviso na página sobre isso.
+
+**Uso de IA:** usei o Claude (Anthropic) para tirar dúvidas, entender conceitos, revisar e comentar o código da minha parte.

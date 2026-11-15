@@ -1,0 +1,218 @@
+/* style.css - visual do site inteiro.
+   Parte do Matheus (front-end).
+   Eu estilizei as tags direto (body, h1, table, form...), então as páginas do
+   Pedro (index e analise) ficam bonitas só colocando o <link> no <head>,
+   sem mexer no HTML delas. */
+
+/* as cores ficam aqui em cima; se quiser mudar o site, muda só aqui */
+:root {
+    --azul: #1f4e8c;
+    --azul-claro: #e8f0fb;
+    --verde: #2e7d4f;
+    --verde-claro: #e6f4ea;
+    --vermelho: #b3261e;
+    --vermelho-claro: #fdecea;
+    --cinza: #5a6472;
+    --borda: #d5dbe3;
+    --fundo: #f4f6f9;
+}
+
+/* box-sizing faz o padding não aumentar a largura dos campos */
+* {
+    box-sizing: border-box;
+}
+
+body {
+    font-family: Arial, Helvetica, sans-serif;
+    background-color: var(--fundo);
+    color: #222;
+    line-height: 1.5;
+    /* conteúdo centralizado e com largura limitada, pra não ficar esticado */
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 24px 16px 48px;
+}
+
+h1 {
+    color: var(--azul);
+    margin-bottom: 8px;
+}
+
+h2 {
+    color: var(--azul);
+    margin-top: 32px;
+    border-bottom: 2px solid var(--azul-claro);
+    padding-bottom: 4px;
+}
+
+h3 {
+    margin-top: 24px;
+}
+
+a {
+    color: var(--azul);
+}
+
+small {
+    display: block;
+    color: var(--cinza);
+    margin-top: 4px;
+}
+
+/* ---------- menu de links (usado na página de previsão) ---------- */
+nav {
+    margin-bottom: 20px;
+}
+
+nav a {
+    display: inline-block;
+    margin-right: 8px;
+    padding: 6px 14px;
+    border-radius: 20px;
+    text-decoration: none;
+    background-color: var(--azul-claro);
+}
+
+nav a:hover,
+nav a.ativo {
+    background-color: var(--azul);
+    color: white;
+}
+
+/* ---------- formulários ---------- */
+form {
+    background-color: white;
+    border: 1px solid var(--borda);
+    border-radius: 10px;
+    padding: 20px;
+    margin: 16px 0;
+}
+
+label {
+    display: block;
+    font-weight: bold;
+    margin: 14px 0 4px;
+}
+
+/* o primeiro label não precisa de espaço em cima */
+label:first-child {
+    margin-top: 0;
+}
+
+select,
+input[type="time"],
+input[type="number"] {
+    width: 100%;
+    padding: 10px;
+    font-size: 16px;
+    border: 1px solid var(--borda);
+    border-radius: 6px;
+    background-color: white;
+}
+
+input[type="file"] {
+    padding: 8px 0;
+}
+
+/* borda azul quando o campo está selecionado */
+select:focus,
+input:focus {
+    outline: none;
+    border-color: var(--azul);
+    box-shadow: 0 0 0 3px var(--azul-claro);
+}
+
+button {
+    margin-top: 20px;
+    padding: 12px 24px;
+    font-size: 16px;
+    color: white;
+    background-color: var(--azul);
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+button:hover {
+    background-color: #163b6b;
+}
+
+/* no celular o botão ocupa a linha toda */
+@media (max-width: 600px) {
+    button {
+        width: 100%;
+    }
+}
+
+/* ---------- mensagem de erro ---------- */
+.erro {
+    background-color: var(--vermelho-claro);
+    color: var(--vermelho);
+    border: 1px solid var(--vermelho);
+    border-radius: 6px;
+    padding: 10px 14px;
+}
+
+/* ---------- resultado da previsão ---------- */
+.resultado {
+    margin-top: 20px;
+    padding: 4px 20px 12px;
+    border-radius: 10px;
+    border-left: 8px solid var(--cinza);
+    background-color: white;
+}
+
+.resultado h2 {
+    border-bottom: none;
+    margin-top: 16px;
+}
+
+.resultado.atrasa {
+    background-color: var(--vermelho-claro);
+    border-left-color: var(--vermelho);
+}
+
+.resultado.atrasa h2 {
+    color: var(--vermelho);
+}
+
+.resultado.no-horario {
+    background-color: var(--verde-claro);
+    border-left-color: var(--verde);
+}
+
+.resultado.no-horario h2 {
+    color: var(--verde);
+}
+
+/* ---------- tabela da amostra (a analise.html usa o to_html do pandas) ---------- */
+table {
+    border-collapse: collapse;
+    width: 100%;
+    background-color: white;
+    font-size: 14px;
+}
+
+th,
+td {
+    border: 1px solid var(--borda);
+    padding: 6px 10px;
+    text-align: right;
+}
+
+th {
+    background-color: var(--azul-claro);
+}
+
+/* ---------- gráficos ---------- */
+img {
+    max-width: 100%;   /* no celular a imagem encolhe em vez de estourar a tela */
+    height: auto;
+    background-color: white;
+    border: 1px solid var(--borda);
+    border-radius: 8px;
+}
+
+li {
+    margin-bottom: 6px;
+}
