@@ -58,4 +58,3 @@ Um CSS só para as 3 páginas. Eu estilizei as tags direto (body, table, form, i
 
 **Limitação:** o modelo foi treinado só com voos de janeiro, então escolher outro mês no formulário não muda o resultado de verdade. Deixei um aviso na página sobre isso.
 
-**Uso de IA:** usei o Claude (Anthropic) para tirar dúvidas, entender conceitos, revisar e comentar o código da minha parte.
